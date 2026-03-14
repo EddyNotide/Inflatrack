@@ -1,0 +1,2023 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="InflaTrack">
+<meta name="description" content="Track your personal basket inflation over time">
+<title>InflaTrack</title>
+<style>
+/* ===== DESIGN TOKENS ===== */
+:root {
+  --bg:        #f4f5f8;
+  --bg2:       #ffffff;
+  --bg3:       #eceef3;
+  --bg4:       #e2e5ee;
+  --text:      #111827;
+  --text2:     #6b7280;
+  --text3:     #9ca3af;
+  --accent:    #3b5bdb;
+  --accent2:   #7048e8;
+  --accentBg:  #eef2ff;
+  --accentBg2: #f3f0ff;
+  --success:   #0ca678;
+  --successBg: #e6fcf5;
+  --danger:    #e03131;
+  --dangerBg:  #fff5f5;
+  --warning:   #e67700;
+  --warningBg: #fff9db;
+  --border:    #e5e7eb;
+  --border2:   #d1d5db;
+  --shadow:    0 1px 3px rgba(0,0,0,.06), 0 4px 16px rgba(0,0,0,.04);
+  --shadowMd:  0 4px 12px rgba(0,0,0,.10), 0 1px 3px rgba(0,0,0,.06);
+  --r:         14px;
+  --rSm:       9px;
+  --rLg:       20px;
+  --navH:      62px;
+  --hdrH:      54px;
+  --ff:        'DM Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  --ffMono:    'IBM Plex Mono', 'SF Mono', 'Fira Code', monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg:        #0c0d14;
+    --bg2:       #141520;
+    --bg3:       #1c1d2e;
+    --bg4:       #252640;
+    --text:      #e8eaf6;
+    --text2:     #8b8db8;
+    --text3:     #5c5e80;
+    --accent:    #5c7cfa;
+    --accent2:   #9775fa;
+    --accentBg:  #1a1e3a;
+    --accentBg2: #1e1b38;
+    --success:   #12b886;
+    --successBg: #0a2e25;
+    --danger:    #ff6b6b;
+    --dangerBg:  #2e0a0a;
+    --warning:   #fcc419;
+    --warningBg: #2e2200;
+    --border:    #252640;
+    --border2:   #2e3054;
+    --shadow:    0 1px 3px rgba(0,0,0,.25), 0 4px 16px rgba(0,0,0,.20);
+    --shadowMd:  0 4px 12px rgba(0,0,0,.35), 0 1px 3px rgba(0,0,0,.25);
+  }
+}
+
+/* ===== RESET & BASE ===== */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+html, body { height: 100%; overflow: hidden; font-size: 15px; }
+body { font-family: var(--ff); background: var(--bg); color: var(--text); line-height: 1.5; -webkit-font-smoothing: antialiased; }
+button { font-family: inherit; cursor: pointer; }
+input, select, textarea { font-family: inherit; }
+a { color: var(--accent); text-decoration: none; }
+
+/* ===== APP SHELL ===== */
+#app {
+  display: flex;
+  flex-direction: column;
+  height: 100dvh;
+  max-width: 500px;
+  margin: 0 auto;
+  position: relative;
+  background: var(--bg);
+  overflow: hidden;
+}
+
+/* ===== HEADER ===== */
+.hdr {
+  height: var(--hdrH);
+  background: var(--bg2);
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  padding: 0 14px;
+  gap: 10px;
+  flex-shrink: 0;
+  z-index: 20;
+  position: relative;
+}
+.hdr-back {
+  display: none;
+  background: none;
+  border: none;
+  color: var(--accent);
+  font-size: 26px;
+  line-height: 1;
+  padding: 2px 4px 2px 0;
+  font-weight: 300;
+}
+.hdr-title {
+  flex: 1;
+  font-size: 17px;
+  font-weight: 700;
+  letter-spacing: -.3px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.hdr-logo { font-size: 18px; font-weight: 900; color: var(--accent); letter-spacing: -1px; }
+.hdr-action {
+  display: none;
+  background: none;
+  border: none;
+  color: var(--accent);
+  font-size: 14px;
+  font-weight: 700;
+  padding: 6px 10px;
+  border-radius: var(--rSm);
+  background: var(--accentBg);
+}
+
+/* ===== MAIN SCROLL AREA ===== */
+#main {
+  flex: 1;
+  overflow-y: auto;
+  overflow-x: hidden;
+  -webkit-overflow-scrolling: touch;
+  scroll-behavior: smooth;
+  padding-bottom: calc(var(--navH) + 6px);
+}
+
+/* ===== BOTTOM NAV ===== */
+.bnav {
+  height: var(--navH);
+  background: var(--bg2);
+  border-top: 1px solid var(--border);
+  display: flex;
+  align-items: stretch;
+  flex-shrink: 0;
+  z-index: 20;
+  padding-bottom: env(safe-area-inset-bottom, 0);
+}
+.bnav-btn {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  border: none;
+  background: none;
+  color: var(--text3);
+  font-size: 10px;
+  font-weight: 600;
+  transition: color .15s;
+  position: relative;
+  padding: 6px 2px 4px;
+  letter-spacing: .2px;
+}
+.bnav-btn.active { color: var(--accent); }
+.bnav-btn .bni { font-size: 21px; line-height: 1.2; }
+.bnav-add { color: white !important; }
+.bnav-add .bni-wrap {
+  width: 46px;
+  height: 46px;
+  background: linear-gradient(135deg, var(--accent), var(--accent2));
+  border-radius: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 26px;
+  box-shadow: 0 3px 12px rgba(91,124,250,.45);
+  margin-bottom: 1px;
+  line-height: 1;
+}
+
+/* ===== VIEWS ===== */
+.view { display: none; padding: 12px 13px; animation: fadeIn .18s ease; }
+.view.active { display: block; }
+@keyframes fadeIn { from { opacity: .6; transform: translateY(4px); } to { opacity: 1; transform: none; } }
+
+/* ===== CARDS ===== */
+.card {
+  background: var(--bg2);
+  border-radius: var(--r);
+  padding: 15px;
+  margin-bottom: 11px;
+  box-shadow: var(--shadow);
+  border: 1px solid var(--border);
+}
+.card-sm { padding: 12px 14px; }
+.card-title {
+  font-size: 11px;
+  font-weight: 800;
+  color: var(--text2);
+  text-transform: uppercase;
+  letter-spacing: .7px;
+  margin-bottom: 11px;
+}
+.card-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+/* ===== STAT GRID ===== */
+.stat-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 9px;
+  margin-bottom: 11px;
+}
+.stat-box {
+  background: var(--bg2);
+  border-radius: var(--r);
+  padding: 13px 12px 11px;
+  box-shadow: var(--shadow);
+  border: 1px solid var(--border);
+  text-align: center;
+}
+.stat-val {
+  font-family: var(--ffMono);
+  font-size: 22px;
+  font-weight: 700;
+  color: var(--accent);
+  letter-spacing: -.5px;
+  line-height: 1.15;
+}
+.stat-val.up   { color: var(--danger); }
+.stat-val.down { color: var(--success); }
+.stat-val.neu  { color: var(--text2); }
+.stat-lbl {
+  font-size: 11px;
+  color: var(--text2);
+  margin-top: 3px;
+  font-weight: 600;
+  letter-spacing: .2px;
+}
+
+/* ===== BUTTONS ===== */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  width: 100%;
+  padding: 13px 18px;
+  border-radius: var(--rSm);
+  border: none;
+  font-size: 15px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: opacity .15s, transform .1s;
+  background: var(--accent);
+  color: white;
+  letter-spacing: -.2px;
+  margin-bottom: 8px;
+}
+.btn:active { transform: scale(.975); opacity: .85; }
+.btn:last-child { margin-bottom: 0; }
+.btn-ghost { background: var(--bg3); color: var(--text); border: 1px solid var(--border); }
+.btn-success { background: var(--success); }
+.btn-danger  { background: var(--danger); }
+.btn-warn    { background: var(--warning); color: #1a1a1a; }
+.btn-outline { background: transparent; color: var(--accent); border: 1.5px solid var(--accent); }
+.btn-sm { padding: 7px 13px; font-size: 13px; width: auto; margin-bottom: 0; border-radius: 8px; }
+.btn-row { display: flex; gap: 8px; }
+.btn-row .btn { margin-bottom: 0; }
+
+/* ===== FORMS ===== */
+.fg { margin-bottom: 13px; }
+.fg:last-child { margin-bottom: 0; }
+.fg label {
+  display: block;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--text2);
+  margin-bottom: 6px;
+  letter-spacing: .3px;
+  text-transform: uppercase;
+}
+.fc {
+  width: 100%;
+  padding: 11px 13px;
+  border: 1.5px solid var(--border2);
+  border-radius: var(--rSm);
+  background: var(--bg);
+  color: var(--text);
+  font-size: 16px;
+  font-family: var(--ff);
+  transition: border-color .15s, box-shadow .15s;
+  -webkit-appearance: none;
+  appearance: none;
+}
+.fc:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px rgba(91,124,250,.18); }
+.fc-mono { font-family: var(--ffMono); }
+.fc-lg { font-size: 20px; padding: 13px; font-weight: 700; }
+.frow { display: grid; grid-template-columns: 1fr 1fr; gap: 9px; }
+.frow3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; }
+
+/* Unit chips */
+.unit-wrap { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 6px; }
+.uchip {
+  padding: 6px 13px;
+  border-radius: 20px;
+  border: 1.5px solid var(--border2);
+  background: var(--bg);
+  color: var(--text);
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all .15s;
+  font-family: var(--ffMono);
+}
+.uchip.on { background: var(--accent); border-color: var(--accent); color: white; }
+
+/* ===== SEARCH ===== */
+.search-wrap {
+  position: relative;
+  margin-bottom: 11px;
+}
+.search-wrap .fc { padding-left: 40px; }
+.search-ico {
+  position: absolute;
+  left: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: 17px;
+  color: var(--text3);
+  pointer-events: none;
+}
+
+/* ===== CHIP SELECTORS ===== */
+.chip-row {
+  display: flex;
+  gap: 6px;
+  overflow-x: auto;
+  padding-bottom: 6px;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+}
+.chip-row::-webkit-scrollbar { display: none; }
+.chip {
+  flex-shrink: 0;
+  padding: 7px 14px;
+  border-radius: 20px;
+  border: 1.5px solid var(--border2);
+  background: var(--bg2);
+  color: var(--text2);
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all .15s;
+  white-space: nowrap;
+  letter-spacing: .2px;
+}
+.chip.on { background: var(--accent); border-color: var(--accent); color: white; }
+
+/* ===== PERIOD SELECTOR ===== */
+.period-sel {
+  display: flex;
+  background: var(--bg3);
+  border-radius: var(--rSm);
+  padding: 3px;
+  margin-bottom: 11px;
+  gap: 3px;
+}
+.period-btn {
+  flex: 1;
+  padding: 5px 4px;
+  border: none;
+  background: none;
+  border-radius: 7px;
+  font-size: 11px;
+  font-weight: 800;
+  color: var(--text2);
+  cursor: pointer;
+  transition: all .15s;
+  letter-spacing: .4px;
+}
+.period-btn.on {
+  background: var(--bg2);
+  color: var(--text);
+  box-shadow: 0 1px 4px rgba(0,0,0,.10);
+}
+
+/* ===== CHART ===== */
+.chart-wrap { position: relative; height: 210px; margin: 6px -2px 4px; }
+.chart-wrap canvas { touch-action: none; }
+.chart-note {
+  font-size: 12px;
+  color: var(--text3);
+  text-align: center;
+  padding: 8px 0 2px;
+  min-height: 24px;
+}
+
+/* ===== PRODUCT ITEMS ===== */
+.pitem {
+  display: flex;
+  align-items: center;
+  padding: 11px 12px;
+  background: var(--bg2);
+  border-radius: var(--r);
+  margin-bottom: 8px;
+  cursor: pointer;
+  border: 1px solid var(--border);
+  gap: 11px;
+  transition: background .1s, transform .1s;
+  user-select: none;
+}
+.pitem:active { background: var(--bg3); transform: scale(.99); }
+.picon {
+  width: 40px;
+  height: 40px;
+  border-radius: 11px;
+  background: var(--accentBg);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 20px;
+  flex-shrink: 0;
+}
+.pinfo { flex: 1; min-width: 0; }
+.pname {
+  font-weight: 700;
+  font-size: 14px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.pmeta { font-size: 11px; color: var(--text2); margin-top: 2px; }
+.pppu {
+  text-align: right;
+  flex-shrink: 0;
+}
+.pppu-val {
+  font-family: var(--ffMono);
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--accent);
+}
+.pinfl {
+  font-size: 11px;
+  font-weight: 800;
+  font-family: var(--ffMono);
+  margin-top: 1px;
+}
+.up   { color: var(--danger); }
+.down { color: var(--success); }
+.neu  { color: var(--text3); }
+
+/* ===== FAVORITES ROW ===== */
+.fav-row {
+  display: flex;
+  gap: 7px;
+  overflow-x: auto;
+  padding-bottom: 8px;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+  margin-bottom: 10px;
+}
+.fav-row::-webkit-scrollbar { display: none; }
+.fav-chip {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  padding: 8px 13px;
+  border-radius: 11px;
+  background: var(--accentBg);
+  color: var(--accent);
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  border: 1.5px solid transparent;
+  transition: all .15s;
+  white-space: nowrap;
+}
+.fav-chip:active { background: var(--accent); color: white; transform: scale(.97); }
+
+/* ===== PRICE STEPS ===== */
+.pstep { display: none; }
+.pstep.active { display: block; }
+
+/* ===== PPU PREVIEW CARD ===== */
+.ppu-card {
+  background: var(--accentBg);
+  border: 1.5px solid var(--accent);
+  border-radius: var(--r);
+  padding: 14px 15px;
+  margin-bottom: 12px;
+}
+.ppu-label { font-size: 11px; font-weight: 700; color: var(--accent); text-transform: uppercase; letter-spacing: .5px; margin-bottom: 4px; }
+.ppu-val { font-family: var(--ffMono); font-size: 26px; font-weight: 700; color: var(--accent); letter-spacing: -1px; }
+
+/* ===== SHRINKFLATION BADGE ===== */
+.shrink-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  background: var(--warningBg);
+  color: var(--warning);
+  font-size: 11px;
+  font-weight: 800;
+  padding: 4px 9px;
+  border-radius: 8px;
+  margin-top: 6px;
+  letter-spacing: .2px;
+}
+
+/* ===== HISTORY ITEMS ===== */
+.hitem {
+  display: flex;
+  align-items: center;
+  padding: 10px 0;
+  border-bottom: 1px solid var(--border);
+  gap: 10px;
+}
+.hitem:last-child { border-bottom: none; }
+.hdate { font-size: 11px; color: var(--text2); min-width: 72px; font-weight: 600; }
+.hprice { font-weight: 700; font-size: 14px; font-family: var(--ffMono); }
+.hppu { font-size: 11px; color: var(--text2); font-family: var(--ffMono); margin-top: 1px; }
+.hchange { margin-left: auto; font-size: 12px; font-weight: 800; font-family: var(--ffMono); flex-shrink: 0; }
+
+/* ===== TOGGLE ===== */
+.toggle-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 0;
+  border-bottom: 1px solid var(--border);
+  gap: 12px;
+}
+.toggle-row:last-child { border-bottom: none; }
+.toggle-lbl { font-weight: 600; font-size: 14px; }
+.toggle-sub { font-size: 11px; color: var(--text2); margin-top: 2px; }
+.tog {
+  position: relative;
+  width: 44px;
+  height: 25px;
+  flex-shrink: 0;
+}
+.tog input { display: none; }
+.tog-sl {
+  position: absolute;
+  inset: 0;
+  background: var(--border2);
+  border-radius: 13px;
+  cursor: pointer;
+  transition: background .2s;
+}
+.tog-sl::after {
+  content: '';
+  position: absolute;
+  width: 19px;
+  height: 19px;
+  background: white;
+  border-radius: 50%;
+  top: 3px;
+  left: 3px;
+  transition: transform .2s;
+  box-shadow: 0 1px 4px rgba(0,0,0,.25);
+}
+.tog input:checked + .tog-sl { background: var(--accent); }
+.tog input:checked + .tog-sl::after { transform: translateX(19px); }
+
+/* ===== SECTION HEADER ===== */
+.sec-hdr {
+  font-size: 11px;
+  font-weight: 800;
+  color: var(--text2);
+  text-transform: uppercase;
+  letter-spacing: .7px;
+  margin: 14px 0 7px;
+}
+.sec-hdr:first-child { margin-top: 0; }
+
+/* ===== TABS ===== */
+.tabs { display: flex; border-bottom: 1px solid var(--border); margin-bottom: 12px; }
+.tab {
+  flex: 1;
+  padding: 10px 8px;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--text2);
+  border: none;
+  background: none;
+  cursor: pointer;
+  border-bottom: 2px solid transparent;
+  transition: all .15s;
+  text-align: center;
+  letter-spacing: .2px;
+}
+.tab.on { color: var(--accent); border-bottom-color: var(--accent); }
+
+/* ===== BADGE ===== */
+.badge {
+  display: inline-block;
+  padding: 3px 8px;
+  border-radius: 8px;
+  font-size: 11px;
+  font-weight: 700;
+  background: var(--bg3);
+  color: var(--text2);
+  cursor: pointer;
+}
+.badge-accent { background: var(--accentBg); color: var(--accent); }
+
+/* ===== REMINDER BANNER ===== */
+.reminder {
+  background: var(--warningBg);
+  border: 1px solid var(--warning);
+  border-radius: var(--rSm);
+  padding: 11px 13px;
+  font-size: 13px;
+  color: var(--warning);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 11px;
+  font-weight: 600;
+}
+.reminder-close {
+  margin-left: auto;
+  background: none;
+  border: none;
+  color: var(--warning);
+  font-size: 17px;
+  cursor: pointer;
+  flex-shrink: 0;
+  padding: 0 2px;
+  line-height: 1;
+}
+
+/* ===== EMPTY STATE ===== */
+.empty {
+  text-align: center;
+  padding: 36px 20px;
+  color: var(--text2);
+}
+.empty-ico { font-size: 44px; margin-bottom: 12px; }
+.empty-ttl { font-size: 16px; font-weight: 700; color: var(--text); margin-bottom: 5px; }
+.empty-desc { font-size: 13px; }
+
+/* ===== TOAST ===== */
+#toast {
+  position: fixed;
+  bottom: calc(var(--navH) + 18px);
+  left: 50%;
+  transform: translateX(-50%) translateY(16px);
+  background: #1a1b2e;
+  color: #e8eaf6;
+  padding: 10px 20px;
+  border-radius: 22px;
+  font-size: 13px;
+  font-weight: 700;
+  opacity: 0;
+  transition: opacity .25s, transform .25s;
+  z-index: 200;
+  pointer-events: none;
+  white-space: nowrap;
+  max-width: 90vw;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  box-shadow: 0 4px 20px rgba(0,0,0,.35);
+  letter-spacing: .1px;
+}
+@media (prefers-color-scheme: dark) {
+  #toast { background: #e8eaf6; color: #141520; }
+}
+#toast.on { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+/* ===== MISC ===== */
+.divider { height: 1px; background: var(--border); margin: 12px 0; }
+.muted   { color: var(--text2); font-size: 13px; }
+.mono    { font-family: var(--ffMono); }
+.center  { text-align: center; }
+.mt8     { margin-top: 8px; }
+.mb0     { margin-bottom: 0; }
+.gap8    { display: flex; flex-direction: column; gap: 8px; }
+
+/* ===== DETAIL BIG STATS ===== */
+.detail-stat {
+  text-align: center;
+  padding: 12px 8px;
+}
+.detail-stat-val {
+  font-family: var(--ffMono);
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--accent);
+  letter-spacing: -.5px;
+}
+.detail-stat-lbl {
+  font-size: 11px;
+  color: var(--text2);
+  margin-top: 2px;
+  font-weight: 600;
+}
+</style>
+</head>
+<body>
+<div id="app">
+
+  <!-- HEADER -->
+  <header class="hdr">
+    <button class="hdr-back" id="hdr-back" onclick="goBack()">‹</button>
+    <div class="hdr-title" id="hdr-title">
+      <span class="hdr-logo">INFLA</span><span style="font-weight:300;opacity:.6">TRACK</span>
+    </div>
+    <button class="hdr-action" id="hdr-action"></button>
+  </header>
+
+  <!-- MAIN -->
+  <main id="main">
+
+    <!-- HOME -->
+    <div id="view-home" class="view active">
+      <div id="home-reminder"></div>
+
+      <div class="stat-grid" id="home-stats">
+        <div class="stat-box">
+          <div class="stat-val up" id="s-total">—</div>
+          <div class="stat-lbl">Total Inflation</div>
+        </div>
+        <div class="stat-box">
+          <div class="stat-val up" id="s-yearly">—</div>
+          <div class="stat-lbl">Avg per Year</div>
+        </div>
+        <div class="stat-box">
+          <div class="stat-val neu" id="s-products">0</div>
+          <div class="stat-lbl">Products</div>
+        </div>
+        <div class="stat-box">
+          <div class="stat-val neu" id="s-entries">0</div>
+          <div class="stat-lbl">Price Entries</div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="chip-row" id="home-chart-type" style="margin-bottom:10px">
+          <div class="chip on" data-ct="basket"  onclick="setChartType('basket')">📊 Basket</div>
+          <div class="chip"    data-ct="product" onclick="setChartType('product')">📦 Product</div>
+          <div class="chip"    data-ct="power"   onclick="setChartType('power')">⏱ Work Time</div>
+        </div>
+        <div id="chart-product-wrap" style="display:none;margin-bottom:9px">
+          <select class="fc" id="chart-product-sel" onchange="renderHomeChart()">
+            <option value="">— Choose product —</option>
+          </select>
+        </div>
+        <div class="period-sel" id="home-periods">
+          <button class="period-btn"    data-p="6m"  onclick="setPeriod('6m')">6M</button>
+          <button class="period-btn"    data-p="1y"  onclick="setPeriod('1y')">1Y</button>
+          <button class="period-btn"    data-p="2y"  onclick="setPeriod('2y')">2Y</button>
+          <button class="period-btn on" data-p="all" onclick="setPeriod('all')">ALL</button>
+        </div>
+        <div class="chart-wrap">
+          <canvas id="home-chart"></canvas>
+        </div>
+        <div class="chart-note" id="home-note"></div>
+      </div>
+
+      <div class="sec-hdr">Recent Entries</div>
+      <div id="home-recent"></div>
+    </div>
+
+    <!-- ADD PRICE -->
+    <div id="view-add-price" class="view">
+
+      <div class="pstep active" id="step-select">
+        <div class="search-wrap">
+          <span class="search-ico">🔍</span>
+          <input type="text" class="fc" id="ap-search" placeholder="Search products…" oninput="apFilter(this.value)" autocomplete="off">
+        </div>
+        <div id="ap-favs-sec">
+          <div class="sec-hdr" style="margin-top:0">⭐ Favourites</div>
+          <div class="fav-row" id="ap-favs"></div>
+        </div>
+        <div class="sec-hdr">All Products</div>
+        <div id="ap-list"></div>
+      </div>
+
+      <div class="pstep" id="step-price">
+        <div class="card card-sm" id="ap-prod-info" style="margin-bottom:14px"></div>
+
+        <div class="fg">
+          <label>Date</label>
+          <input type="date" class="fc" id="e-date">
+        </div>
+        <div class="fg">
+          <label>Price (€)</label>
+          <input type="number" class="fc fc-mono fc-lg" id="e-price" placeholder="0.00" step="0.01" min="0" inputmode="decimal" oninput="calcPPU()">
+        </div>
+        <div class="fg">
+          <label>Quantity &amp; Unit</label>
+          <div class="frow">
+            <input type="number" class="fc fc-mono" id="e-qty" placeholder="e.g. 500" step="any" min="0" inputmode="decimal" oninput="calcPPU()">
+            <select class="fc" id="e-unit" onchange="calcPPU()"></select>
+          </div>
+        </div>
+
+        <div class="ppu-card" id="ppu-card">
+          <div class="ppu-label">Price per unit</div>
+          <div class="ppu-val" id="ppu-display">—</div>
+          <div id="shrink-display"></div>
+        </div>
+
+        <button class="btn" onclick="saveEntry()">💾 Save Entry</button>
+        <button class="btn btn-ghost" onclick="goStep('select')">← Back</button>
+      </div>
+    </div>
+
+    <!-- PRODUCT FORM -->
+    <div id="view-product-form" class="view">
+      <input type="hidden" id="pf-id">
+      <div class="fg">
+        <label>Name *</label>
+        <input type="text" class="fc" id="pf-name" placeholder="e.g. Whole Milk" autocomplete="off">
+      </div>
+      <div class="fg">
+        <label>Category</label>
+        <input type="text" class="fc" id="pf-cat" placeholder="e.g. Dairy" autocomplete="off">
+        <div id="pf-cat-chips" style="display:flex;flex-wrap:wrap;gap:5px;margin-top:7px"></div>
+      </div>
+      <div class="fg">
+        <label>Default Unit</label>
+        <div class="unit-wrap" id="pf-units"></div>
+      </div>
+      <div class="fg">
+        <label>Default Quantity</label>
+        <input type="number" class="fc fc-mono" id="pf-qty" placeholder="e.g. 1000" step="any" min="0" inputmode="decimal">
+      </div>
+      <div class="toggle-row">
+        <div>
+          <div class="toggle-lbl">⭐ Favourite</div>
+          <div class="toggle-sub">Show in quick access bar</div>
+        </div>
+        <label class="tog">
+          <input type="checkbox" id="pf-fav">
+          <span class="tog-sl"></span>
+        </label>
+      </div>
+      <div style="margin-top:14px">
+        <button class="btn" onclick="saveProduct()">💾 Save Product</button>
+        <div id="pf-archive-wrap"></div>
+      </div>
+    </div>
+
+    <!-- PRODUCTS LIST -->
+    <div id="view-products" class="view">
+      <div class="tabs" id="prod-tabs">
+        <button class="tab on" onclick="setProdsTab('active')">Active</button>
+        <button class="tab"    onclick="setProdsTab('archived')">Archived</button>
+      </div>
+      <div class="search-wrap">
+        <span class="search-ico">🔍</span>
+        <input type="text" class="fc" id="prods-search" placeholder="Search…" oninput="renderProds()" autocomplete="off">
+      </div>
+      <div id="prods-list"></div>
+    </div>
+
+    <!-- PRODUCT DETAIL -->
+    <div id="view-product-detail" class="view">
+      <div id="pd-content"></div>
+    </div>
+
+    <!-- STATISTICS -->
+    <div id="view-statistics" class="view">
+      <div id="stats-content"></div>
+    </div>
+
+    <!-- SETTINGS -->
+    <div id="view-settings" class="view">
+      <div class="sec-hdr" style="margin-top:0">⏱ Purchasing Power</div>
+      <div class="card">
+        <div class="fg mb0">
+          <label>Hourly Wage (€)</label>
+          <input type="number" class="fc fc-mono" id="s-wage" placeholder="e.g. 15.00" step="0.01" min="0" inputmode="decimal" onchange="saveWage()">
+          <div class="muted" style="margin-top:6px">Used to show "minutes of work" per product</div>
+        </div>
+      </div>
+
+      <div class="sec-hdr">💾 Backup &amp; Restore</div>
+      <div class="card gap8">
+        <button class="btn mb0" onclick="exportJSON()">📤 Export JSON (full backup)</button>
+        <button class="btn btn-ghost mb0" onclick="exportCSV()">📊 Export CSV (spreadsheet)</button>
+        <button class="btn btn-ghost mb0" onclick="triggerImport()">📥 Import JSON (restore)</button>
+        <input type="file" id="import-file" accept=".json" style="display:none" onchange="importJSON(this)">
+      </div>
+
+      <div class="sec-hdr">ℹ️ About</div>
+      <div class="card">
+        <div style="font-size:14px">
+          <strong>InflaTrack</strong> — Personal Inflation Tracker<br>
+          <span class="muted">Measures your real personal inflation using a basket of products. Detects shrinkflation automatically. All data stays on your device.</span>
+        </div>
+        <div class="divider"></div>
+        <div class="muted">Version 1.0 · No server · No tracking · 100% offline</div>
+      </div>
+    </div>
+
+  </main>
+
+  <!-- BOTTOM NAV -->
+  <nav class="bnav">
+    <button class="bnav-btn" data-nav="home" onclick="navigate('home')">
+      <span class="bni">🏠</span><span>Home</span>
+    </button>
+    <button class="bnav-btn" data-nav="products" onclick="navigate('products')">
+      <span class="bni">📦</span><span>Products</span>
+    </button>
+    <button class="bnav-btn bnav-add" onclick="navigate('add-price')">
+      <div class="bni-wrap">＋</div>
+      <span style="font-size:9px;color:var(--text3)">Add Price</span>
+    </button>
+    <button class="bnav-btn" data-nav="statistics" onclick="navigate('statistics')">
+      <span class="bni">📈</span><span>Stats</span>
+    </button>
+    <button class="bnav-btn" data-nav="settings" onclick="navigate('settings')">
+      <span class="bni">⚙️</span><span>Settings</span>
+    </button>
+  </nav>
+
+</div><!-- #app -->
+
+<div id="toast"></div>
+
+<!-- Chart.js -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
+
+<script>
+'use strict';
+
+/* ═══════════════════════════════════════
+   CONSTANTS
+═══════════════════════════════════════ */
+const DB_NAME = 'InflaTrackDB';
+const DB_VERSION = 1;
+const UNITS = ['g','kg','ml','l','piece','pack','dozen','oz','lb'];
+const CATEGORIES = ['Dairy','Bread & Bakery','Meat & Fish','Fruit','Vegetables','Beverages','Snacks','Frozen','Canned','Household','Personal Care','Other'];
+const CAT_ICONS = {
+  'Dairy':'🥛','Bread & Bakery':'🍞','Meat & Fish':'🥩','Fruit':'🍎',
+  'Vegetables':'🥦','Beverages':'🥤','Snacks':'🍫','Frozen':'🧊',
+  'Canned':'🥫','Household':'🧹','Personal Care':'🧴'
+};
+
+/* ═══════════════════════════════════════
+   STATE
+═══════════════════════════════════════ */
+const S = {
+  db: null,
+  products: [],
+  entries: [],
+  wage: null,
+  view: 'home',
+  prevView: 'home',
+  chartType: 'basket',   // basket | product | power
+  period: 'all',         // 6m | 1y | 2y | all
+  prodsTab: 'active',
+  selProdId: null,
+  detailProdId: null,
+  charts: {},
+};
+
+/* ═══════════════════════════════════════
+   SERVICE WORKER (generated inline)
+═══════════════════════════════════════ */
+const SW_SRC = `
+const CACHE='it-v2';
+const ASSETS=['./','https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js'];
+self.addEventListener('install',e=>{
+  e.waitUntil(caches.open(CACHE).then(c=>c.addAll(ASSETS).catch(()=>{})).then(()=>self.skipWaiting()));
+});
+self.addEventListener('activate',e=>{
+  e.waitUntil(caches.keys().then(ks=>Promise.all(ks.filter(k=>k!==CACHE).map(k=>caches.delete(k)))).then(()=>clients.claim()));
+});
+self.addEventListener('fetch',e=>{
+  if(e.request.method!=='GET')return;
+  e.respondWith(
+    caches.match(e.request).then(cached=>{
+      const net=fetch(e.request).then(r=>{
+        if(r.ok){const cl=r.clone();caches.open(CACHE).then(c=>c.put(e.request,cl));}
+        return r;
+      }).catch(()=>cached);
+      return cached||net;
+    })
+  );
+});`;
+
+function registerSW() {
+  if (!('serviceWorker' in navigator)) return;
+  try {
+    const blob = new Blob([SW_SRC], {type:'text/javascript'});
+    const url  = URL.createObjectURL(blob);
+    navigator.serviceWorker.register(url, {scope:'./'})
+      .then(()=>console.log('SW registered'))
+      .catch(()=>navigator.serviceWorker.register('./sw.js',{scope:'./'}).catch(()=>{}));
+  } catch(e){}
+}
+
+/* ═══════════════════════════════════════
+   MANIFEST
+═══════════════════════════════════════ */
+function injectManifest() {
+  const m = {
+    name: 'InflaTrack — Personal Inflation',
+    short_name: 'InflaTrack',
+    description: 'Track your personal basket inflation',
+    start_url: './',
+    display: 'standalone',
+    background_color: '#0c0d14',
+    theme_color: '#141520',
+    icons:[{
+      src:"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='22' fill='%233b5bdb'/%3E%3Ctext y='.9em' x='50' text-anchor='middle' font-size='68'%3E📈%3C/text%3E%3C/svg%3E",
+      sizes:'512x512',type:'image/svg+xml',purpose:'any maskable'
+    }]
+  };
+  const blob = new Blob([JSON.stringify(m)],{type:'application/manifest+json'});
+  const link = document.createElement('link');
+  link.rel = 'manifest';
+  link.href = URL.createObjectURL(blob);
+  document.head.appendChild(link);
+}
+
+/* ═══════════════════════════════════════
+   INDEXEDDB
+═══════════════════════════════════════ */
+function idb(mode, store, op, ...args) {
+  return new Promise((res, rej) => {
+    const tx = S.db.transaction(store, mode);
+    const st = tx.objectStore(store);
+    const req = st[op](...args);
+    req.onsuccess = () => res(req.result);
+    req.onerror  = () => rej(req.error);
+  });
+}
+const dbGet    = (s,k)  => idb('readonly',  s, 'get', k);
+const dbPut    = (s,v)  => idb('readwrite', s, 'put', v);
+const dbDel    = (s,k)  => idb('readwrite', s, 'delete', k);
+const dbGetAll = (s)    => idb('readonly',  s, 'getAll');
+
+function initDB() {
+  return new Promise((res, rej) => {
+    const req = indexedDB.open(DB_NAME, DB_VERSION);
+    req.onupgradeneeded = e => {
+      const d = e.target.result;
+      if (!d.objectStoreNames.contains('products')) {
+        const ps = d.createObjectStore('products', {keyPath:'id'});
+        ps.createIndex('name','name');
+        ps.createIndex('favorite','favorite');
+      }
+      if (!d.objectStoreNames.contains('priceEntries')) {
+        const pe = d.createObjectStore('priceEntries', {keyPath:'id'});
+        pe.createIndex('productId','productId');
+        pe.createIndex('date','date');
+      }
+      if (!d.objectStoreNames.contains('settings'))
+        d.createObjectStore('settings', {keyPath:'key'});
+    };
+    req.onsuccess = e => { S.db = e.target.result; res(); };
+    req.onerror   = () => rej(req.error);
+  });
+}
+
+async function loadAll() {
+  S.products = await dbGetAll('products');
+  S.entries  = (await dbGetAll('priceEntries')).sort((a,b)=>a.date.localeCompare(b.date));
+  const w = await dbGet('settings','wage');
+  S.wage = w ? w.value : null;
+}
+
+function uid() { return Date.now().toString(36)+Math.random().toString(36).slice(2,7); }
+
+/* ═══════════════════════════════════════
+   DATA HELPERS
+═══════════════════════════════════════ */
+const active    = ()   => S.products.filter(p=>!p.archived);
+const favs      = ()   => S.products.filter(p=>!p.archived && p.favorite);
+const byId      = id   => S.products.find(p=>p.id===id);
+const entriesOf = pid  => S.entries.filter(e=>e.productId===pid);
+const latestOf  = pid  => { const es=entriesOf(pid); return es.length?es[es.length-1]:null; };
+const mkey      = d    => d.slice(0,7);
+const today     = ()   => new Date().toISOString().slice(0,10);
+
+function monthAdd(ym, n) {
+  const [y,m] = ym.split('-').map(Number);
+  const d = new Date(y, m-1+n, 1);
+  return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`;
+}
+function monthDiff(a, b) {
+  const [ay,am]=[+a.slice(0,4),+a.slice(5,7)];
+  const [by,bm]=[+b.slice(0,4),+b.slice(5,7)];
+  return (by-ay)*12+(bm-am);
+}
+function ppuAt(sortedEntries, dateStr) {
+  let last=null;
+  for(const e of sortedEntries){ if(e.date<=dateStr) last=e; else break; }
+  return last?last.pricePerUnit:null;
+}
+
+/* ═══════════════════════════════════════
+   INFLATION ENGINE
+═══════════════════════════════════════ */
+function basketInflation(periodMonths=null) {
+  if(!S.entries.length) return null;
+  const byProd={};
+  for(const e of S.entries){
+    if(!byProd[e.productId]) byProd[e.productId]=[];
+    byProd[e.productId].push(e);
+  }
+  const allDates=S.entries.map(e=>e.date).sort();
+  let startM = mkey(allDates[0]);
+  const endM = mkey(today());
+  if(periodMonths){ const c=monthAdd(endM,-periodMonths); if(c>startM) startM=c; }
+
+  const pts=[];
+  let cur=startM;
+  while(cur<=endM){
+    const ds=cur+'-28';
+    const idxs=[];
+    for(const p of S.products){
+      const es=byProd[p.id]||[];
+      if(!es.length||es[0].date>ds) continue;
+      const fp=es[0].pricePerUnit;
+      if(!fp||fp<=0) continue;
+      const cp=ppuAt(es,ds);
+      if(cp!==null) idxs.push(cp/fp);
+    }
+    if(idxs.length){
+      const avg=idxs.reduce((a,b)=>a+b,0)/idxs.length;
+      const [yr,mo]=cur.split('-');
+      const lbl=new Date(+yr,+mo-1).toLocaleDateString('default',{month:'short',year:'2-digit'});
+      pts.push({m:cur,lbl,infl:(avg-1)*100,idx:avg,n:idxs.length});
+    }
+    cur=monthAdd(cur,1);
+  }
+  return pts.length?pts:null;
+}
+
+function productInflation(pid, periodMonths=null) {
+  const es=entriesOf(pid);
+  if(!es.length) return null;
+  const fp=es[0].pricePerUnit;
+  if(!fp||fp<=0) return null;
+  const byM={};
+  for(const e of es){ const m=mkey(e.date); if(!byM[m]||e.date>byM[m].date) byM[m]=e; }
+  let months=Object.keys(byM).sort();
+  if(periodMonths){ const c=monthAdd(months[months.length-1],-periodMonths); months=months.filter(m=>m>=c); }
+  return months.map(m=>{
+    const e=byM[m];
+    const [yr,mo]=m.split('-');
+    const lbl=new Date(+yr,+mo-1).toLocaleDateString('default',{month:'short',year:'2-digit'});
+    return {m,lbl,ppu:e.pricePerUnit,infl:(e.pricePerUnit/fp-1)*100,e};
+  });
+}
+
+function workTime(pid, periodMonths=null) {
+  if(!S.wage||S.wage<=0) return null;
+  const es=entriesOf(pid);
+  if(!es.length) return null;
+  const byM={};
+  for(const e of es){ const m=mkey(e.date); if(!byM[m]||e.date>byM[m].date) byM[m]=e; }
+  let months=Object.keys(byM).sort();
+  if(periodMonths){ const c=monthAdd(months[months.length-1],-periodMonths); months=months.filter(m=>m>=c); }
+  const wpm=S.wage/60;
+  return months.map(m=>{
+    const e=byM[m];
+    const [yr,mo]=m.split('-');
+    const lbl=new Date(+yr,+mo-1).toLocaleDateString('default',{month:'short',year:'2-digit'});
+    return {m,lbl,mins:e.pricePerUnit/wpm,e};
+  });
+}
+
+function summaryStats() {
+  const pts=basketInflation();
+  if(!pts||!pts.length) return null;
+  const last=pts[pts.length-1], first=pts[0];
+  const mos=monthDiff(first.m,last.m)||1;
+  const yrs=mos/12;
+  const tot=last.infl;
+  const ann=(Math.pow(1+tot/100,1/Math.max(yrs,1/12))-1)*100;
+  return {tot:tot.toFixed(1),ann:ann.toFixed(1),prods:active().length,entries:S.entries.length};
+}
+
+function shrinkDetect(pid) {
+  const es=entriesOf(pid);
+  if(es.length<2) return null;
+  const a=es[es.length-2], b=es[es.length-1];
+  if(a.unit!==b.unit) return null;
+  const dp=Math.abs(b.price-a.price)/a.price;
+  const dq=(a.quantity-b.quantity)/a.quantity;
+  if(dp<0.02&&dq>0.03) return {old:a.quantity,nw:b.quantity,unit:b.unit,pct:(dq*100).toFixed(1)};
+  return null;
+}
+
+/* ═══════════════════════════════════════
+   CHARTS
+═══════════════════════════════════════ */
+function killChart(id){
+  if(S.charts[id]){ S.charts[id].destroy(); delete S.charts[id]; }
+}
+function killAll(){ Object.keys(S.charts).forEach(killChart); }
+
+function makeChart(canvasId,labels,datasets,yFmt,title=''){
+  killChart(canvasId);
+  const cv=document.getElementById(canvasId);
+  if(!cv) return null;
+  const dark=window.matchMedia('(prefers-color-scheme: dark)').matches;
+  const gc=dark?'rgba(255,255,255,.06)':'rgba(0,0,0,.05)';
+  const tc=dark?'#5c5e80':'#9ca3af';
+
+  const chart=new Chart(cv,{
+    type:'line',
+    data:{labels,datasets},
+    options:{
+      responsive:true,
+      maintainAspectRatio:false,
+      animation:{duration:350},
+      interaction:{mode:'index',intersect:false,axis:'x'},
+      plugins:{
+        legend:{display:datasets.length>1,labels:{color:tc,boxWidth:10,font:{size:10,weight:'700'}}},
+        title:{display:!!title,text:title,color:tc,font:{size:11}},
+        tooltip:{
+          backgroundColor:dark?'#1c1d2e':'#fff',
+          titleColor:dark?'#e8eaf6':'#111827',
+          bodyColor:dark?'#8b8db8':'#6b7280',
+          borderColor:dark?'#252640':'#e5e7eb',
+          borderWidth:1,
+          padding:10,
+          cornerRadius:9,
+          callbacks:{
+            label:ctx=>' '+yFmt(ctx.parsed.y)
+          }
+        }
+      },
+      scales:{
+        x:{grid:{color:gc},ticks:{color:tc,maxTicksLimit:7,font:{size:10,weight:'600'}}},
+        y:{grid:{color:gc},ticks:{color:tc,font:{size:10,weight:'600'},callback:v=>yFmt(v)}}
+      }
+    }
+  });
+
+  // Touch drag tooltip
+  cv.addEventListener('touchstart',e=>touchTooltip(e,cv,chart),{passive:false});
+  cv.addEventListener('touchmove', e=>touchTooltip(e,cv,chart),{passive:false});
+  cv.addEventListener('touchend', ()=>{
+    chart.tooltip.setActiveElements([],{x:0,y:0});
+    chart.update('none');
+  },{passive:true});
+
+  S.charts[canvasId]=chart;
+  return chart;
+}
+
+function touchTooltip(e,cv,chart){
+  e.preventDefault();
+  const t=e.touches[0];
+  const r=cv.getBoundingClientRect();
+  const x=t.clientX-r.left, y=t.clientY-r.top;
+  const pts=chart.getElementsAtEventForMode(
+    {clientX:t.clientX,clientY:t.clientY},'index',{intersect:false},false
+  );
+  chart.tooltip.setActiveElements(pts.map(p=>({datasetIndex:p.datasetIndex,index:p.index})),{x,y});
+  chart.update('none');
+}
+
+function periodMs(){ return ({all:null,'6m':6,'1y':12,'2y':24})[S.period]||null; }
+
+/* ═══════════════════════════════════════
+   NAVIGATION
+═══════════════════════════════════════ */
+function navigate(view, pid=null){
+  S.prevView=S.view;
+  S.view=view;
+
+  document.querySelectorAll('.view').forEach(v=>v.classList.remove('active'));
+  document.getElementById('view-'+view)?.classList.add('active');
+
+  document.querySelectorAll('.bnav-btn[data-nav]').forEach(b=>{
+    b.classList.toggle('active', b.dataset.nav===view);
+  });
+
+  const backViews=['add-price','product-form','product-detail'];
+  const back=document.getElementById('hdr-back');
+  back.style.display=backViews.includes(view)?'block':'none';
+
+  const act=document.getElementById('hdr-action');
+  act.style.display='none';
+  act.onclick=null;
+
+  const titleEl=document.getElementById('hdr-title');
+
+  switch(view){
+    case 'home':
+      titleEl.innerHTML='<span class="hdr-logo">INFLA</span><span style="font-weight:300;opacity:.6">TRACK</span>';
+      renderHome(); break;
+    case 'add-price':
+      titleEl.textContent='Add Price';
+      renderAddPrice(pid); break;
+    case 'product-form':
+      titleEl.textContent=pid?'Edit Product':'New Product';
+      renderProductForm(pid); break;
+    case 'products':
+      titleEl.textContent='Products';
+      act.style.display='block'; act.textContent='+ New';
+      act.onclick=()=>navigate('product-form');
+      renderProds(); break;
+    case 'product-detail':
+      titleEl.textContent='';
+      S.detailProdId=pid;
+      renderProductDetail(pid); break;
+    case 'statistics':
+      titleEl.textContent='Statistics';
+      renderStats(); break;
+    case 'settings':
+      titleEl.textContent='Settings';
+      renderSettings(); break;
+  }
+
+  document.getElementById('main').scrollTop=0;
+}
+
+function goBack(){
+  if(S.view==='product-form'&&S.prevView==='product-detail')
+    navigate('product-detail',S.detailProdId);
+  else navigate(S.prevView||'home');
+}
+
+/* ═══════════════════════════════════════
+   HOME VIEW
+═══════════════════════════════════════ */
+async function renderHome(){
+  await loadAll();
+  checkReminder();
+
+  const st=summaryStats();
+  const set=(id,v,cls)=>{
+    const el=document.getElementById(id);
+    el.textContent=v; el.className='stat-val '+cls;
+  };
+  if(st){
+    const tc=parseFloat(st.tot)>0?'up':parseFloat(st.tot)<0?'down':'neu';
+    const ac=parseFloat(st.ann)>0?'up':parseFloat(st.ann)<0?'down':'neu';
+    set('s-total',(+st.tot>0?'+':'')+st.tot+'%',tc);
+    set('s-yearly',(+st.ann>0?'+':'')+st.ann+'%/y',ac);
+    set('s-products',st.prods,'neu');
+    set('s-entries',st.entries,'neu');
+  } else {
+    set('s-total','—','neu');
+    set('s-yearly','—','neu');
+    set('s-products',active().length,'neu');
+    set('s-entries',S.entries.length,'neu');
+  }
+
+  // Populate product selector
+  const sel=document.getElementById('chart-product-sel');
+  const prev=sel.value;
+  sel.innerHTML='<option value="">— Choose product —</option>';
+  active().forEach(p=>{ sel.innerHTML+=`<option value="${p.id}"${p.id===prev?' selected':''}>${p.name}</option>`; });
+
+  renderHomeChart();
+  renderRecent();
+}
+
+function setChartType(t){
+  S.chartType=t;
+  document.querySelectorAll('#home-chart-type .chip').forEach(c=>c.classList.toggle('on',c.dataset.ct===t));
+  document.getElementById('chart-product-wrap').style.display=(t!=='basket')?'block':'none';
+  renderHomeChart();
+}
+
+function setPeriod(p){
+  S.period=p;
+  document.querySelectorAll('#home-periods .period-btn').forEach(b=>b.classList.toggle('on',b.dataset.p===p));
+  renderHomeChart();
+}
+
+function renderHomeChart(){
+  const note=document.getElementById('home-note');
+  note.textContent='';
+  const ms=periodMs();
+
+  if(S.chartType==='basket'){
+    const data=basketInflation(ms);
+    if(!data){ note.textContent='Add price entries to see your basket inflation.'; killChart('home-chart'); return; }
+    makeChart('home-chart', data.map(d=>d.lbl),
+      [{label:'Basket Inflation',data:data.map(d=>+d.infl.toFixed(2)),
+        borderColor:'#5c7cfa',backgroundColor:'rgba(92,124,250,.10)',
+        fill:true,tension:.35,pointRadius:data.length>24?0:3,borderWidth:2}],
+      v=>v.toFixed(1)+'%');
+
+  } else if(S.chartType==='product'){
+    const pid=document.getElementById('chart-product-sel').value;
+    if(!pid){ note.textContent='Select a product above.'; killChart('home-chart'); return; }
+    const data=productInflation(pid,ms);
+    if(!data){ note.textContent='No entries for this product.'; killChart('home-chart'); return; }
+    makeChart('home-chart', data.map(d=>d.lbl),
+      [{label:'Inflation vs first entry',data:data.map(d=>+d.infl.toFixed(2)),
+        borderColor:'#9775fa',backgroundColor:'rgba(151,117,250,.10)',
+        fill:true,tension:.35,pointRadius:data.length>24?0:3,borderWidth:2}],
+      v=>v.toFixed(1)+'%');
+
+  } else if(S.chartType==='power'){
+    const pid=document.getElementById('chart-product-sel').value;
+    if(!pid){ note.textContent='Select a product above.'; killChart('home-chart'); return; }
+    if(!S.wage){ note.textContent='Set your hourly wage in Settings first.'; killChart('home-chart'); return; }
+    const data=workTime(pid,ms);
+    if(!data){ note.textContent='No entries for this product.'; killChart('home-chart'); return; }
+    const prod=byId(pid);
+    makeChart('home-chart', data.map(d=>d.lbl),
+      [{label:'Work minutes per '+(prod?.defaultUnit||'unit'),
+        data:data.map(d=>+d.mins.toFixed(1)),
+        borderColor:'#12b886',backgroundColor:'rgba(18,184,134,.10)',
+        fill:true,tension:.35,pointRadius:data.length>24?0:3,borderWidth:2}],
+      v=>v.toFixed(1)+'min');
+  }
+}
+
+function renderRecent(){
+  const el=document.getElementById('home-recent');
+  const recent=[...S.entries].sort((a,b)=>b.date.localeCompare(a.date)).slice(0,6);
+  if(!recent.length){
+    el.innerHTML=`<div class="empty"><div class="empty-ico">📭</div><div class="empty-ttl">No entries yet</div><div class="empty-desc">Tap <strong>＋</strong> to record your first price</div></div>`;
+    return;
+  }
+  el.innerHTML=recent.map(e=>{
+    const p=byId(e.productId);
+    if(!p) return '';
+    return `<div class="pitem" onclick="navigate('product-detail','${p.id}')">
+      <div class="picon">${catIcon(p.category)}</div>
+      <div class="pinfo">
+        <div class="pname">${esc(p.name)}</div>
+        <div class="pmeta">${fmtDate(e.date)} · ${e.quantity}${e.unit}</div>
+      </div>
+      <div class="pppu">
+        <div class="pppu-val">${fmtCur(e.price)}</div>
+        <div class="muted mono" style="font-size:11px">${fmtPPU(e.pricePerUnit,e.unit)}</div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function checkReminder(){
+  const el=document.getElementById('home-reminder');
+  if(!S.entries.length){ el.innerHTML=''; return; }
+  const thisM=mkey(today());
+  if(!S.entries.some(e=>mkey(e.date)===thisM))
+    el.innerHTML=`<div class="reminder">⏰ You haven't logged prices this month.<button class="reminder-close" onclick="this.closest('.reminder').remove()">×</button></div>`;
+  else el.innerHTML='';
+}
+
+/* ═══════════════════════════════════════
+   ADD PRICE VIEW
+═══════════════════════════════════════ */
+function renderAddPrice(preselPid=null){
+  goStep('select');
+  document.getElementById('ap-search').value='';
+  renderFavs();
+  apFilter('');
+  if(preselPid) setTimeout(()=>selectProd(preselPid),0);
+}
+
+function renderFavs(){
+  const fs=favs();
+  const sec=document.getElementById('ap-favs-sec');
+  if(!fs.length){ sec.style.display='none'; return; }
+  sec.style.display='block';
+  document.getElementById('ap-favs').innerHTML=fs.map(p=>
+    `<div class="fav-chip" onclick="selectProd('${p.id}')">${catIcon(p.category)} ${esc(p.name)}</div>`
+  ).join('');
+}
+
+function apFilter(q){
+  const prods=active().filter(p=>!q||
+    p.name.toLowerCase().includes(q.toLowerCase())||
+    (p.category&&p.category.toLowerCase().includes(q.toLowerCase())));
+  const el=document.getElementById('ap-list');
+  if(!prods.length&&!q){
+    el.innerHTML=`<div class="empty"><div class="empty-ico">📦</div><div class="empty-ttl">No products yet</div></div><button class="btn" onclick="navigate('product-form')">+ Create Product</button>`;
+    return;
+  }
+  if(!prods.length){
+    el.innerHTML=`<div class="empty"><div class="empty-ico">🔍</div><div class="empty-ttl">No matches</div></div>`;
+    return;
+  }
+  el.innerHTML=prods.map(p=>{
+    const l=latestOf(p.id);
+    return `<div class="pitem" onclick="selectProd('${p.id}')">
+      <div class="picon">${catIcon(p.category)}</div>
+      <div class="pinfo">
+        <div class="pname">${esc(p.name)}</div>
+        <div class="pmeta">${p.category||'No category'}</div>
+      </div>
+      <div class="pppu">
+        ${l?`<div class="pppu-val">${fmtCur(l.price)}</div><div class="muted mono" style="font-size:10px">${fmtPPU(l.pricePerUnit,l.unit)}</div>`:'<div class="muted">No data</div>'}
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function selectProd(id){
+  S.selProdId=id;
+  const p=byId(id);
+  if(!p) return;
+  const l=latestOf(id);
+
+  document.getElementById('ap-prod-info').innerHTML=`
+    <div style="display:flex;align-items:center;gap:11px">
+      <div class="picon" style="width:46px;height:46px;font-size:22px">${catIcon(p.category)}</div>
+      <div style="flex:1;min-width:0">
+        <div style="font-weight:700;font-size:16px">${esc(p.name)}</div>
+        <div class="muted">${p.category||''}</div>
+        ${l?`<div class="muted mono" style="font-size:11px;margin-top:2px">Last: ${fmtCur(l.price)} · ${fmtPPU(l.pricePerUnit,l.unit)}</div>`:''}
+      </div>
+    </div>`;
+
+  document.getElementById('e-date').value=today();
+  document.getElementById('e-price').value=l?l.price:'';
+
+  const defQty=l?l.quantity:(p.defaultQuantity||1);
+  const defUnit=l?l.unit:(p.defaultUnit||'piece');
+  document.getElementById('e-qty').value=defQty;
+
+  const usel=document.getElementById('e-unit');
+  usel.innerHTML=UNITS.map(u=>`<option value="${u}"${u===defUnit?' selected':''}>${u}</option>`).join('');
+
+  calcPPU();
+  goStep('price');
+  document.getElementById('e-price').focus();
+}
+
+function goStep(s){
+  document.querySelectorAll('.pstep').forEach(el=>el.classList.remove('active'));
+  document.getElementById('step-'+s).classList.add('active');
+}
+
+function calcPPU(){
+  const price=parseFloat(document.getElementById('e-price').value);
+  const qty  =parseFloat(document.getElementById('e-qty').value);
+  const unit =document.getElementById('e-unit').value;
+  const disp =document.getElementById('ppu-display');
+  const shEl =document.getElementById('shrink-display');
+
+  if(price>0&&qty>0){
+    const ppu=price/qty;
+    disp.textContent=fmtPPU(ppu,unit);
+    // Shrinkflation check
+    if(S.selProdId){
+      const es=entriesOf(S.selProdId);
+      if(es.length){
+        const l=es[es.length-1];
+        if(l.unit===unit){
+          const dp=Math.abs(price-l.price)/l.price;
+          const dq=(l.quantity-qty)/l.quantity;
+          if(dp<0.02&&dq>0.03){
+            shEl.innerHTML=`<span class="shrink-badge">⚠️ Shrinkflation! ${l.quantity}→${qty}${unit} (−${(dq*100).toFixed(1)}%)</span>`;
+            return;
+          }
+        }
+      }
+    }
+    shEl.innerHTML='';
+  } else {
+    disp.textContent='—';
+    shEl.innerHTML='';
+  }
+}
+
+async function saveEntry(){
+  const pid   =S.selProdId;
+  const date  =document.getElementById('e-date').value;
+  const price =parseFloat(document.getElementById('e-price').value);
+  const qty   =parseFloat(document.getElementById('e-qty').value);
+  const unit  =document.getElementById('e-unit').value;
+  if(!pid)              return toast('❌ No product selected');
+  if(!date)             return toast('❌ Date required');
+  if(isNaN(price)||price<=0) return toast('❌ Valid price required');
+  if(isNaN(qty)  ||qty<=0)   return toast('❌ Valid quantity required');
+
+  const entry={id:uid(),productId:pid,date,price,quantity:qty,unit,pricePerUnit:price/qty,createdAt:new Date().toISOString()};
+  await dbPut('priceEntries',entry);
+  S.entries.push(entry);
+  S.entries.sort((a,b)=>a.date.localeCompare(b.date));
+  toast('✅ Price saved!');
+  navigate('home');
+}
+
+/* ═══════════════════════════════════════
+   PRODUCT FORM VIEW
+═══════════════════════════════════════ */
+function renderProductForm(pid=null){
+  const p=pid?byId(pid):null;
+
+  // Units
+  const defUnit=p?p.defaultUnit:'g';
+  document.getElementById('pf-units').innerHTML=UNITS.map(u=>
+    `<span class="uchip${u===defUnit?' on':''}" data-u="${u}" onclick="selUnit('${u}')">${u}</span>`
+  ).join('');
+
+  // Cat chips
+  document.getElementById('pf-cat-chips').innerHTML=CATEGORIES.map(c=>
+    `<span class="badge" onclick="document.getElementById('pf-cat').value='${c}'">${c}</span>`
+  ).join('');
+
+  document.getElementById('pf-id').value    = p?p.id:'';
+  document.getElementById('pf-name').value  = p?p.name:'';
+  document.getElementById('pf-cat').value   = p?(p.category||''):'';
+  document.getElementById('pf-qty').value   = p?(p.defaultQuantity||''):'';  
+  document.getElementById('pf-fav').checked = p?!!p.favorite:false;
+
+  const aw=document.getElementById('pf-archive-wrap');
+  if(p){
+    aw.innerHTML=`<button class="btn ${p.archived?'btn-success':'btn-danger'} mt8" onclick="toggleArchive('${p.id}')">
+      ${p.archived?'📦 Unarchive':'🗄️ Archive'} Product</button>`;
+  } else aw.innerHTML='';
+}
+
+function selUnit(u){
+  document.querySelectorAll('.uchip').forEach(c=>c.classList.toggle('on',c.dataset.u===u));
+}
+
+async function saveProduct(){
+  const id    =document.getElementById('pf-id').value;
+  const name  =document.getElementById('pf-name').value.trim();
+  const cat   =document.getElementById('pf-cat').value.trim();
+  const unit  =document.querySelector('.uchip.on')?.dataset.u||'piece';
+  const qty   =parseFloat(document.getElementById('pf-qty').value)||null;
+  const fav   =document.getElementById('pf-fav').checked;
+  if(!name) return toast('❌ Name required');
+
+  const exist=id?byId(id):null;
+  const prod={
+    id:id||uid(), name, category:cat||null,
+    defaultUnit:unit, defaultQuantity:qty, favorite:fav,
+    createdAt:exist?exist.createdAt:new Date().toISOString(),
+    archived:exist?exist.archived:false,
+  };
+  await dbPut('products',prod);
+  const idx=S.products.findIndex(p=>p.id===prod.id);
+  if(idx>=0) S.products[idx]=prod; else S.products.push(prod);
+  toast(id?'✅ Product updated':'✅ Product added');
+  navigate('products');
+}
+
+async function toggleArchive(pid){
+  const p=byId(pid);
+  if(!p) return;
+  p.archived=!p.archived;
+  await dbPut('products',p);
+  toast(p.archived?'🗄️ Archived':'📦 Unarchived');
+  navigate('products');
+}
+
+/* ═══════════════════════════════════════
+   PRODUCTS LIST VIEW
+═══════════════════════════════════════ */
+function setProdsTab(tab){
+  S.prodsTab=tab;
+  document.querySelectorAll('#prod-tabs .tab').forEach((t,i)=>{
+    t.classList.toggle('on',(i===0&&tab==='active')||(i===1&&tab==='archived'));
+  });
+  renderProds();
+}
+
+function renderProds(){
+  const q=(document.getElementById('prods-search')?.value||'').toLowerCase();
+  const tab=S.prodsTab;
+  const prods=S.products.filter(p=>{
+    if(p.archived!==(tab==='archived')) return false;
+    if(!q) return true;
+    return p.name.toLowerCase().includes(q)||(p.category&&p.category.toLowerCase().includes(q));
+  });
+  const el=document.getElementById('prods-list');
+  if(!prods.length){
+    el.innerHTML=`<div class="empty"><div class="empty-ico">📭</div>
+      <div class="empty-ttl">${tab==='archived'?'No archived products':'No products yet'}</div>
+      ${tab==='active'?`<button class="btn" onclick="navigate('product-form')" style="margin-top:12px">+ Create Product</button>`:''}
+    </div>`;
+    return;
+  }
+  el.innerHTML=prods.map(p=>{
+    const es=entriesOf(p.id);
+    const l=es.length?es[es.length-1]:null;
+    let inflHtml='';
+    if(es.length>=2){
+      const infl=(es[es.length-1].pricePerUnit/es[0].pricePerUnit-1)*100;
+      const cls=infl>0?'up':infl<0?'down':'neu';
+      inflHtml=`<div class="pinfl ${cls}">${infl>0?'+':''}${infl.toFixed(1)}%</div>`;
+    }
+    const sh=shrinkDetect(p.id);
+    return `<div class="pitem" onclick="navigate('product-detail','${p.id}')">
+      <div class="picon">${catIcon(p.category)}</div>
+      <div class="pinfo">
+        <div class="pname">${esc(p.name)}${sh?'<span class="shrink-badge" style="margin-left:6px;font-size:10px">⚠️ Shrink</span>':''}</div>
+        <div class="pmeta">${p.category||'No category'} · ${es.length} ${es.length===1?'entry':'entries'}</div>
+      </div>
+      <div class="pppu">
+        ${l?`<div class="pppu-val">${fmtCur(l.price)}</div>`:''}
+        ${inflHtml}
+      </div>
+    </div>`;
+  }).join('');
+}
+
+/* ═══════════════════════════════════════
+   PRODUCT DETAIL VIEW
+═══════════════════════════════════════ */
+function renderProductDetail(pid){
+  const p=byId(pid);
+  if(!p) return;
+  document.getElementById('hdr-title').textContent=p.name;
+
+  const es=entriesOf(pid);
+  const l=es.length?es[es.length-1]:null;
+  const f=es.length?es[0]:null;
+
+  let inflHtml='';
+  if(es.length>=2&&f&&l){
+    const infl=(l.pricePerUnit/f.pricePerUnit-1)*100;
+    const col=infl>0?'var(--danger)':infl<0?'var(--success)':'var(--text2)';
+    inflHtml=`<div style="color:${col};font-weight:800;font-size:14px;font-family:var(--ffMono);margin-top:4px">
+      ${infl>0?'+':''}${infl.toFixed(1)}% since ${fmtDate(f.date)}</div>`;
+  }
+  const sh=shrinkDetect(pid);
+  const shHtml=sh?`<div style="margin-top:8px"><span class="shrink-badge">⚠️ Shrinkflation! ${sh.old}→${sh.nw}${sh.unit} (−${sh.pct}%)</span></div>`:'';
+
+  let workHtml='';
+  if(S.wage&&l){
+    const mins=l.pricePerUnit/(S.wage/60);
+    workHtml=`<div class="muted" style="margin-top:5px;font-size:12px">⏱ ${fmtWork(mins)} of work per ${l.unit}</div>`;
+  }
+
+  const el=document.getElementById('pd-content');
+  el.innerHTML=`
+  <div class="card">
+    <div style="display:flex;align-items:center;gap:12px;margin-bottom:13px">
+      <div class="picon" style="width:50px;height:50px;font-size:24px">${catIcon(p.category)}</div>
+      <div style="flex:1;min-width:0">
+        <div style="font-size:18px;font-weight:800">${esc(p.name)}</div>
+        <div class="muted">${p.category||'No category'}</div>
+      </div>
+      <button class="btn btn-ghost btn-sm" onclick="navigate('product-form','${p.id}')">Edit</button>
+    </div>
+    ${l?`<div style="display:grid;grid-template-columns:1fr 1fr;gap:9px;margin-bottom:11px">
+      <div class="detail-stat"><div class="detail-stat-val">${fmtCur(l.price)}</div><div class="detail-stat-lbl">Latest Price</div></div>
+      <div class="detail-stat"><div class="detail-stat-val">${fmtPPU(l.pricePerUnit,l.unit)}</div><div class="detail-stat-lbl">Per Unit</div></div>
+    </div>`:''}
+    ${inflHtml}${shHtml}${workHtml}
+  </div>
+
+  <div class="card">
+    <div class="card-title">Price per Unit — History</div>
+    <div class="period-sel" id="pd-periods">
+      <button class="period-btn" data-p="6m" onclick="pdPeriod('${pid}','6m')">6M</button>
+      <button class="period-btn" data-p="1y" onclick="pdPeriod('${pid}','1y')">1Y</button>
+      <button class="period-btn" data-p="2y" onclick="pdPeriod('${pid}','2y')">2Y</button>
+      <button class="period-btn on" data-p="all" onclick="pdPeriod('${pid}','all')">ALL</button>
+    </div>
+    <div class="chart-wrap"><canvas id="pd-chart"></canvas></div>
+    <div class="chart-note" id="pd-note"></div>
+  </div>
+
+  <div class="card">
+    <div class="card-row" style="margin-bottom:11px">
+      <div class="card-title mb0">Price Entries</div>
+      <button class="btn btn-ghost btn-sm" onclick="navigate('add-price','${pid}')">+ Add</button>
+    </div>
+    <div id="pd-history"></div>
+  </div>`;
+
+  renderPdChart(pid,null);
+  renderHistory(pid);
+}
+
+function pdPeriod(pid,p){
+  document.querySelectorAll('#pd-periods .period-btn').forEach(b=>b.classList.toggle('on',b.dataset.p===p));
+  const ms=({'6m':6,'1y':12,'2y':24})[p]||null;
+  renderPdChart(pid,ms);
+}
+
+function renderPdChart(pid,ms){
+  const data=productInflation(pid,ms);
+  const note=document.getElementById('pd-note');
+  if(!data||data.length<2){ note.textContent='Need at least 2 entries to show a chart.'; killChart('pd-chart'); return; }
+  note.textContent='';
+  const prod=byId(pid);
+  makeChart('pd-chart',data.map(d=>d.lbl),
+    [{label:`€/${prod?.defaultUnit||'unit'}`,data:data.map(d=>+d.ppu.toFixed(5)),
+      borderColor:'#9775fa',backgroundColor:'rgba(151,117,250,.10)',
+      fill:true,tension:.35,pointRadius:data.length>24?0:3,borderWidth:2}],
+    v=>'€'+v.toFixed(4));
+}
+
+function renderHistory(pid){
+  const es=entriesOf(pid).slice().reverse();
+  const el=document.getElementById('pd-history');
+  if(!es.length){ el.innerHTML='<div class="muted center" style="padding:14px">No entries yet</div>'; return; }
+  el.innerHTML=es.map((e,i)=>{
+    const prev=i<es.length-1?es[i+1]:null;
+    let chg='';
+    if(prev&&prev.unit===e.unit){
+      const d=(e.pricePerUnit/prev.pricePerUnit-1)*100;
+      const cls=d>0?'up':d<0?'down':'neu';
+      chg=`<span class="hchange ${cls}">${d>0?'+':''}${d.toFixed(1)}%</span>`;
+    }
+    return `<div class="hitem">
+      <div class="hdate">${fmtDate(e.date)}</div>
+      <div>
+        <div class="hprice">${fmtCur(e.price)}</div>
+        <div class="hppu">${e.quantity}${e.unit} · ${fmtPPU(e.pricePerUnit,e.unit)}</div>
+      </div>
+      ${chg}
+    </div>`;
+  }).join('');
+}
+
+/* ═══════════════════════════════════════
+   STATISTICS VIEW
+═══════════════════════════════════════ */
+async function renderStats(){
+  await loadAll();
+  const el=document.getElementById('stats-content');
+  const st=summaryStats();
+  if(!st||!S.entries.length){
+    el.innerHTML=`<div class="empty"><div class="empty-ico">📊</div><div class="empty-ttl">No data yet</div><div class="empty-desc">Add products and price entries to see statistics</div></div>`;
+    return;
+  }
+  const tc=+st.tot>0?'up':+st.tot<0?'down':'neu';
+  const ac=+st.ann>0?'up':+st.ann<0?'down':'neu';
+
+  const prodSt=S.products.filter(p=>!p.archived).map(p=>{
+    const es=entriesOf(p.id);
+    if(es.length<2) return null;
+    const f=es[0],l=es[es.length-1];
+    const infl=(l.pricePerUnit/f.pricePerUnit-1)*100;
+    const mos=monthDiff(mkey(f.date),mkey(l.date))||1;
+    const ann=(Math.pow(1+infl/100,12/mos)-1)*100;
+    return {p,infl,ann,f,l,n:es.length};
+  }).filter(Boolean).sort((a,b)=>b.infl-a.infl);
+
+  el.innerHTML=`
+  <div class="stat-grid">
+    <div class="stat-box"><div class="stat-val ${tc}">${+st.tot>0?'+':''}${st.tot}%</div><div class="stat-lbl">Total Inflation</div></div>
+    <div class="stat-box"><div class="stat-val ${ac}">${+st.ann>0?'+':''}${st.ann}%/yr</div><div class="stat-lbl">Annualised</div></div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">Per-Product Inflation (all time)</div>
+    ${prodSt.length?prodSt.map(s=>{
+      const col=s.infl>0?'var(--danger)':s.infl<0?'var(--success)':'var(--text2)';
+      const sh=shrinkDetect(s.p.id);
+      return `<div class="hitem" onclick="navigate('product-detail','${s.p.id}')" style="cursor:pointer">
+        <div class="picon" style="width:32px;height:32px;font-size:15px;flex-shrink:0">${catIcon(s.p.category)}</div>
+        <div style="flex:1;padding-left:9px;min-width:0">
+          <div style="font-weight:700;font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(s.p.name)}${sh?'<span class="shrink-badge" style="margin-left:5px;font-size:10px">⚠️</span>':''}</div>
+          <div class="muted" style="font-size:11px">${s.n} entries · ${fmtDate(s.f.date)}→${fmtDate(s.l.date)}</div>
+        </div>
+        <div style="text-align:right;flex-shrink:0">
+          <div style="font-weight:800;font-size:14px;font-family:var(--ffMono);color:${col}">${s.infl>0?'+':''}${s.infl.toFixed(1)}%</div>
+          <div class="muted mono" style="font-size:10px">${s.ann>0?'+':''}${s.ann.toFixed(1)}%/yr</div>
+        </div>
+      </div>`;
+    }).join(''):'<div class="muted">Add more entries to see per-product stats.</div>'}
+  </div>
+
+  ${S.wage?`
+  <div class="card">
+    <div class="card-title">⏱ Purchasing Power — Work Time Required</div>
+    ${prodSt.map(s=>{
+      const wpm=S.wage/60;
+      const fm=s.f.pricePerUnit/wpm;
+      const lm=s.l.pricePerUnit/wpm;
+      const d=lm-fm;
+      const col=d>0?'var(--danger)':'var(--success)';
+      return `<div class="hitem">
+        <div style="flex:1;font-weight:600;font-size:13px">${esc(s.p.name)}</div>
+        <div style="text-align:right;font-size:12px">
+          <div class="mono">${fmtWork(fm)} → <strong>${fmtWork(lm)}</strong></div>
+          <div style="color:${col};font-weight:700;font-size:11px">${d>0?'+':''}${fmtWork(Math.abs(d))} ${d>0?'more':'less'}</div>
+        </div>
+      </div>`;
+    }).join('')}
+  </div>`:`
+  <div class="card center muted" style="padding:16px">
+    ⏱ Set hourly wage in Settings to see purchasing power data
+  </div>`}`;
+}
+
+/* ═══════════════════════════════════════
+   SETTINGS VIEW
+═══════════════════════════════════════ */
+async function renderSettings(){
+  await loadAll();
+  document.getElementById('s-wage').value=S.wage||'';
+}
+
+async function saveWage(){
+  const v=parseFloat(document.getElementById('s-wage').value);
+  S.wage=isNaN(v)||v<=0?null:v;
+  await dbPut('settings',{key:'wage',value:S.wage});
+  toast('✅ Wage saved');
+}
+
+/* ═══════════════════════════════════════
+   BACKUP / RESTORE
+═══════════════════════════════════════ */
+async function exportJSON(){
+  await loadAll();
+  const data={version:1,exportedAt:new Date().toISOString(),products:S.products,priceEntries:S.entries,settings:{wage:S.wage}};
+  dlFile(JSON.stringify(data,null,2),'infltrack-'+today()+'.json','application/json');
+  toast('✅ JSON exported');
+}
+
+async function exportCSV(){
+  await loadAll();
+  const rows=[['Product','Category','Date','Price (€)','Quantity','Unit','Price/Unit']];
+  for(const e of S.entries){
+    const p=byId(e.productId);
+    rows.push([p?.name||'?',p?.category||'',e.date,e.price,e.quantity,e.unit,e.pricePerUnit.toFixed(6)]);
+  }
+  const csv=rows.map(r=>r.map(c=>`"${String(c).replace(/"/g,'""')}"`).join(',')).join('\n');
+  dlFile(csv,'infltrack-'+today()+'.csv','text/csv');
+  toast('✅ CSV exported');
+}
+
+function triggerImport(){ document.getElementById('import-file').click(); }
+
+async function importJSON(inp){
+  const file=inp.files[0]; if(!file) return;
+  try{
+    const txt=await file.text();
+    const data=JSON.parse(txt);
+    if(!data.products||!data.priceEntries) return toast('❌ Invalid file');
+    if(!confirm(`Import ${data.products.length} products & ${data.priceEntries.length} entries?\n\nExisting records won't be overwritten.`)) return;
+    let n=0;
+    for(const p of data.products){ if(!byId(p.id)){ await dbPut('products',p); n++; } }
+    for(const e of data.priceEntries){ await dbPut('priceEntries',e); n++; }
+    if(data.settings?.wage!=null) await dbPut('settings',{key:'wage',value:data.settings.wage});
+    await loadAll();
+    toast(`✅ Imported ${n} records`);
+    navigate('home');
+  } catch(e){ toast('❌ Import failed'); console.error(e); }
+  inp.value='';
+}
+
+function dlFile(content,name,type){
+  const a=document.createElement('a');
+  a.href=URL.createObjectURL(new Blob([content],{type}));
+  a.download=name;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+}
+
+/* ═══════════════════════════════════════
+   TOAST
+═══════════════════════════════════════ */
+let _tt;
+function toast(msg,dur=2400){
+  const el=document.getElementById('toast');
+  el.textContent=msg;
+  el.classList.add('on');
+  clearTimeout(_tt);
+  _tt=setTimeout(()=>el.classList.remove('on'),dur);
+}
+
+/* ═══════════════════════════════════════
+   FORMATTERS
+═══════════════════════════════════════ */
+function fmtCur(v){ return '€'+v.toFixed(2); }
+function fmtPPU(ppu,unit){
+  if(!ppu) return '—';
+  const s=ppu<0.001?ppu.toFixed(5):ppu<0.01?ppu.toFixed(4):ppu<0.1?ppu.toFixed(3):ppu.toFixed(2);
+  return `€${s}/${unit}`;
+}
+function fmtDate(s){
+  if(!s) return '';
+  const d=new Date(s+'T12:00:00');
+  return d.toLocaleDateString('default',{day:'numeric',month:'short',year:'numeric'});
+}
+function fmtWork(m){
+  if(m<1) return Math.round(m*60)+'s';
+  if(m<60) return Math.round(m)+'min';
+  const h=Math.floor(m/60), mn=Math.round(m%60);
+  return mn?`${h}h ${mn}min`:`${h}h`;
+}
+function catIcon(c){ return CAT_ICONS[c]||'🛒'; }
+function esc(s){ return String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+
+/* ═══════════════════════════════════════
+   INIT
+═══════════════════════════════════════ */
+async function init(){
+  injectManifest();
+  registerSW();
+  try{
+    await initDB();
+    await loadAll();
+    renderHome();
+  } catch(e){
+    console.error('Init error',e);
+    document.getElementById('main').innerHTML=`<div class="empty"><div class="empty-ico">❌</div><div class="empty-ttl">Startup failed</div><div class="empty-desc">${e.message}</div></div>`;
+  }
+}
+
+if(document.readyState==='loading') document.addEventListener('DOMContentLoaded',init);
+else init();
+</script>
+</body>
+</html>
