@@ -692,6 +692,57 @@ a { color: var(--accent); text-decoration: none; }
 .mb0     { margin-bottom: 0; }
 .gap8    { display: flex; flex-direction: column; gap: 8px; }
 
+/* ===== DELETE BUTTON ===== */
+.del-btn {
+  flex-shrink: 0;
+  background: none;
+  border: none;
+  color: var(--text3);
+  font-size: 19px;
+  padding: 4px 2px 4px 10px;
+  cursor: pointer;
+  line-height: 1;
+  transition: color .15s, transform .1s;
+  -webkit-tap-highlight-color: transparent;
+}
+.del-btn:active { color: var(--danger); transform: scale(1.2); }
+
+/* ===== CONFIRM OVERLAY ===== */
+#confirm-overlay {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,.55);
+  z-index: 300;
+  align-items: flex-end;
+  justify-content: center;
+  backdrop-filter: blur(3px);
+  -webkit-backdrop-filter: blur(3px);
+}
+#confirm-overlay.on { display: flex; animation: fadeIn .18s ease; }
+#confirm-box {
+  background: var(--bg2);
+  border-radius: var(--rLg) var(--rLg) 0 0;
+  padding: 22px 20px calc(30px + env(safe-area-inset-bottom, 0px));
+  width: 100%;
+  max-width: 500px;
+  border: 1px solid var(--border);
+  border-bottom: none;
+}
+#confirm-box h3 { font-size: 17px; font-weight: 800; margin-bottom: 7px; }
+#confirm-box p  { font-size: 14px; color: var(--text2); margin-bottom: 16px; line-height: 1.5; }
+#confirm-entry-info {
+  background: var(--bg3);
+  border-radius: var(--rSm);
+  padding: 10px 13px;
+  font-size: 13px;
+  font-family: var(--ffMono);
+  color: var(--text);
+  margin-bottom: 18px;
+  border: 1px solid var(--border);
+  line-height: 1.6;
+}
+
 /* ===== DETAIL BIG STATS ===== */
 .detail-stat {
   text-align: center;
@@ -937,6 +988,19 @@ a { color: var(--accent); text-decoration: none; }
 </div><!-- #app -->
 
 <div id="toast"></div>
+
+<!-- CONFIRM DELETE OVERLAY -->
+<div id="confirm-overlay" onclick="confirmCancel(event)">
+  <div id="confirm-box">
+    <h3>🗑️ Eintrag löschen?</h3>
+    <p>Diese Aktion kann nicht rückgängig gemacht werden. Der Eintrag wird dauerhaft aus deiner Preishistorie entfernt.</p>
+    <div id="confirm-entry-info"></div>
+    <div class="btn-row">
+      <button class="btn btn-ghost" style="margin-bottom:0" onclick="confirmCancel()">Abbrechen</button>
+      <button class="btn btn-danger" style="margin-bottom:0" onclick="confirmDelete()">Löschen</button>
+    </div>
+  </div>
+</div>
 
 <!-- Chart.js -->
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
@@ -1818,11 +1882,12 @@ function renderHistory(pid){
     }
     return `<div class="hitem">
       <div class="hdate">${fmtDate(e.date)}</div>
-      <div>
+      <div style="flex:1">
         <div class="hprice">${fmtCur(e.price)}</div>
         <div class="hppu">${e.quantity}${e.unit} · ${fmtPPU(e.pricePerUnit,e.unit)}</div>
       </div>
       ${chg}
+      <button class="del-btn" onclick="askDeleteEntry('${e.id}','${pid}')" title="Eintrag löschen">🗑️</button>
     </div>`;
   }).join('');
 }
@@ -2014,6 +2079,51 @@ async function init(){
     console.error('Init error',e);
     document.getElementById('main').innerHTML=`<div class="empty"><div class="empty-ico">❌</div><div class="empty-ttl">Startup failed</div><div class="empty-desc">${e.message}</div></div>`;
   }
+}
+
+/* ═══════════════════════════════════════
+   DELETE ENTRY
+═══════════════════════════════════════ */
+let _pendingDeleteId  = null;
+let _pendingDeletePid = null;
+
+function askDeleteEntry(entryId, pid){
+  const e = S.entries.find(x => x.id === entryId);
+  if(!e) return;
+  const p = byId(pid);
+  _pendingDeleteId  = entryId;
+  _pendingDeletePid = pid;
+
+  // Fill info box
+  document.getElementById('confirm-entry-info').innerHTML =
+    `📦 ${esc(p ? p.name : '?')}<br>` +
+    `📅 ${fmtDate(e.date)}<br>` +
+    `💶 ${fmtCur(e.price)} · ${e.quantity}${e.unit} · ${fmtPPU(e.pricePerUnit, e.unit)}`;
+
+  document.getElementById('confirm-overlay').classList.add('on');
+}
+
+async function confirmDelete(){
+  if(!_pendingDeleteId) return;
+  await dbDel('priceEntries', _pendingDeleteId);
+  S.entries = S.entries.filter(e => e.id !== _pendingDeleteId);
+  const pid = _pendingDeletePid;
+  _pendingDeleteId  = null;
+  _pendingDeletePid = null;
+  document.getElementById('confirm-overlay').classList.remove('on');
+  toast('✅ Eintrag gelöscht');
+  // Refresh detail view
+  renderProductDetail(pid);
+  // Refresh home stats silently in background
+  loadAll().then(()=>{});
+}
+
+function confirmCancel(e){
+  // Click on overlay backdrop (not the box itself) also closes
+  if(e && e.target !== document.getElementById('confirm-overlay')) return;
+  _pendingDeleteId  = null;
+  _pendingDeletePid = null;
+  document.getElementById('confirm-overlay').classList.remove('on');
 }
 
 if(document.readyState==='loading') document.addEventListener('DOMContentLoaded',init);
